@@ -1,0 +1,187 @@
+version: '1.0'
+name: AI Governance Security Baseline
+
+security_controls:
+  authentication:
+    - control: MFA_REQUIRED
+      level: CRITICAL
+      description: "Multi-factor authentication must be enabled for all users"
+      check:
+        type: configuration
+        path: website/backend/src/config/security.py
+        pattern: "MFA_ENABLED = True"
+
+    - control: PASSWORD_POLICY
+      level: HIGH
+      description: "Password policy must meet minimum requirements"
+      requirements:
+        min_length: 12
+        require_numbers: true
+        require_special: true
+        require_uppercase: true
+        max_age_days: 90
+
+    - control: SESSION_MANAGEMENT
+      level: HIGH
+      description: "Secure session management configuration"
+      check:
+        type: configuration
+        settings:
+          - SESSION_SECURE = True
+          - SESSION_HTTPONLY = True
+          - SESSION_EXPIRE_TIME = 3600
+
+  encryption:
+    - control: DATA_ENCRYPTION
+      level: CRITICAL
+      description: "All sensitive data must be encrypted"
+      check:
+        type: code_scan
+        patterns:
+          - "encryption.encrypt"
+          - "crypto.seal"
+        excluded_patterns:
+          - "plaintext"
+          - "unencrypted"
+
+    - control: TLS_VERSION
+      level: HIGH
+      description: "Minimum TLS version 1.2 required"
+      check:
+        type: configuration
+        value: "TLS_VERSION >= 1.2"
+
+    - control: KEY_ROTATION
+      level: MEDIUM
+      description: "Encryption keys must be rotated regularly"
+      check:
+        type: aws_kms
+        max_key_age_days: 365
+
+  access_control:
+    - control: LEAST_PRIVILEGE
+      level: HIGH
+      description: "Enforce principle of least privilege"
+      check:
+        type: iam_policy
+        rules:
+          - no_wildcard_permissions
+          - specific_actions_only
+          - no_admin_policies
+
+    - control: ROLE_BASED_ACCESS
+      level: HIGH
+      description: "Role-based access control implementation"
+      check:
+        type: code_scan
+        files:
+          - "src/auth/roles.py"
+          - "src/auth/permissions.py"
+
+    - control: API_AUTHENTICATION
+      level: CRITICAL
+      description: "All API endpoints must require authentication"
+      check:
+        type: code_scan
+        exclude_paths:
+          - "health"
+          - "metrics"
+          - "docs"
+
+  monitoring:
+    - control: AUDIT_LOGGING
+      level: HIGH
+      description: "Comprehensive audit logging"
+      requirements:
+        - user_actions
+        - system_changes
+        - security_events
+        - compliance_events
+
+    - control: ALERT_CONFIGURATION
+      level: HIGH
+      description: "Security alerts must be configured"
+      check:
+        type: cloudwatch
+        alerts:
+          - unauthorized_access
+          - suspicious_activity
+          - compliance_violation
+
+    - control: LOG_RETENTION
+      level: MEDIUM
+      description: "Log retention policy"
+      check:
+        type: configuration
+        min_retention_days: 90
+
+  vulnerability_management:
+    - control: DEPENDENCY_UPDATES
+      level: HIGH
+      description: "Regular dependency updates"
+      check:
+        type: dependabot
+        required: true
+        auto_merge: security_updates
+
+    - control: SECURITY_SCANNING
+      level: HIGH
+      description: "Regular security scanning"
+      check:
+        type: github_actions
+        workflow: security-pipeline.yml
+        frequency: daily
+
+    - control: PATCH_MANAGEMENT
+      level: HIGH
+      description: "System patching policy"
+      check:
+        type: aws_inspector
+        max_cvss_score: 7.0
+        patch_deadline_days: 30
+
+compliance_frameworks:
+  - framework: ISO27001
+    controls:
+      - A.9.2.1  # User registration
+      - A.9.2.4  # Secret authentication
+      - A.9.4.2  # Secure log-on
+      - A.10.1.1 # Encryption
+
+  - framework: GDPR
+    controls:
+      - article_25  # Privacy by design
+      - article_32  # Security of processing
+      - article_35  # Impact assessment
+
+  - framework: SOC2
+    controls:
+      - CC6.1  # Logical access security
+      - CC6.2  # Account management
+      - CC6.7  # Encryption
+      - CC7.1  # Change management
+
+  - framework: HIPAA
+    controls:
+      - "164.312(a)(1)"  # Access control
+      - "164.312(a)(2)(i)"  # Unique user identification
+      - "164.312(a)(2)(iv)"  # Encryption
+      - "164.312(b)"  # Audit controls
+
+reporting:
+  frequency: daily
+  formats:
+    - html
+    - pdf
+    - json
+  notifications:
+    - type: email
+      recipients:
+        - security@ai-governance.com
+    - type: slack
+      channel: "#security-alerts"
+  metrics:
+    - compliance_score
+    - vulnerabilities_by_severity
+    - time_to_remediation
+    - security_incidents

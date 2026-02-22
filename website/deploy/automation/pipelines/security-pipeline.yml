@@ -1,0 +1,257 @@
+name: Enhanced Security Checks
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Daily at midnight
+  pull_request:
+    paths:
+      - 'website/**'
+      - '.github/workflows/**'
+  workflow_dispatch:
+    inputs:
+      scan_type:
+        description: 'Type of security scan to run'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - dependencies
+          - sast
+          - container
+          - infrastructure
+          - compliance
+
+jobs:
+  prepare:
+    name: Prepare Security Scan
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Determine scan scope
+        id: set-matrix
+        run: |
+          if [[ "${{ github.event.inputs.scan_type }}" != "" ]]; then
+            echo "matrix=$(echo '${{ github.event.inputs.scan_type }}')" >> $GITHUB_OUTPUT
+          else
+            echo "matrix=['full']" >> $GITHUB_OUTPUT
+          fi
+
+  dependency-check:
+    name: Dependency Security Check
+    needs: prepare
+    if: needs.prepare.outputs.matrix == 'dependencies' || needs.prepare.outputs.matrix == 'full'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run NPM Audit
+        working-directory: website/frontend
+        run: |
+          npm audit --audit-level=high
+          npm audit fix --force
+
+      - name: Run Python Safety Check
+        working-directory: website/backend
+        run: |
+          pip install safety
+          safety check
+
+      - name: Run Snyk Scan
+        uses: snyk/actions/python@master
+        with:
+          command: monitor
+          args: --severity-threshold=high
+
+      - name: Run Dependency-Track
+        uses: dependency-track/track@v1
+        with:
+          api-key: ${{ secrets.DEPENDENCYTRACK_API_KEY }}
+          project-name: "AI Governance Tool"
+          project-version: ${{ github.sha }}
+
+  sast-analysis:
+    name: Static Application Security Testing
+    needs: prepare
+    if: needs.prepare.outputs.matrix == 'sast' || needs.prepare.outputs.matrix == 'full'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Run Bandit
+        working-directory: website/backend
+        run: |
+          pip install bandit
+          bandit -r . -ll -ii -f json -o bandit-results.json
+
+      - name: Run ESLint Security Plugin
+        working-directory: website/frontend
+        run: |
+          npm install eslint-plugin-security
+          npx eslint . --plugin security --config .eslintrc.json
+
+      - name: Run SonarCloud Analysis
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/owasp-top-ten
+            p/ci
+            p/python
+            p/react
+
+  container-scan:
+    name: Container Security Scan
+    needs: prepare
+    if: needs.prepare.outputs.matrix == 'container' || needs.prepare.outputs.matrix == 'full'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build containers
+        run: |
+          docker-compose -f website/docker-compose.yml build
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'ai-governance-backend:latest'
+          format: 'template'
+          template: '@/contrib/sarif.tpl'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Run Snyk Container Security
+        uses: snyk/actions/docker@master
+        with:
+          image: ai-governance-backend:latest
+          args: --file=website/backend/Dockerfile
+
+      - name: Run Anchore Analysis
+        uses: anchore/scan-action@v3
+        with:
+          image: "ai-governance-backend:latest"
+          fail-build: true
+          severity-cutoff: high
+
+  infrastructure-scan:
+    name: Infrastructure Security Scan
+    needs: prepare
+    if: needs.prepare.outputs.matrix == 'infrastructure' || needs.prepare.outputs.matrix == 'full'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          working_directory: website/deploy/aws/terraform
+
+      - name: Run checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: website/deploy/aws/terraform
+          framework: terraform
+
+      - name: Run Terrascan
+        uses: tenable/terrascan-action@main
+        with:
+          iac_type: terraform
+          iac_dir: website/deploy/aws/terraform
+
+      - name: Run CloudSploit Scan
+        uses: aquasecurity/cloudsploit-action@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+  compliance-check:
+    name: Compliance Verification
+    needs: prepare
+    if: needs.prepare.outputs.matrix == 'compliance' || needs.prepare.outputs.matrix == 'full'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run HIPAA Compliance Check
+        uses: ./website/deploy/automation/scripts/compliance-check.sh
+        with:
+          standard: hipaa
+          config: website/deploy/automation/config/compliance/hipaa.yaml
+
+      - name: Run ISO 27001 Check
+        uses: ./website/deploy/automation/scripts/compliance-check.sh
+        with:
+          standard: iso27001
+          config: website/deploy/automation/config/compliance/iso27001.yaml
+
+      - name: Run GDPR Compliance Check
+        uses: ./website/deploy/automation/scripts/compliance-check.sh
+        with:
+          standard: gdpr
+          config: website/deploy/automation/config/compliance/gdpr.yaml
+
+      - name: Run SOC 2 Compliance Check
+        uses: ./website/deploy/automation/scripts/compliance-check.sh
+        with:
+          standard: soc2
+          config: website/deploy/automation/config/compliance/soc2.yaml
+
+  security-report:
+    name: Generate Security Report
+    needs: [dependency-check, sast-analysis, container-scan, infrastructure-scan, compliance-check]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Collect Results
+        run: |
+          mkdir -p security-results
+          cp *-results.* security-results/
+
+      - name: Generate HTML Report
+        uses: ./website/deploy/automation/scripts/generate-security-report.sh
+        with:
+          results-dir: security-results
+          output: security-report.html
+
+      - name: Upload Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-report
+          path: security-report.html
+
+      - name: Send Report
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: ./website/deploy/automation/scripts/send-security-report.sh
+        with:
+          report: security-report.html
+          email: ${{ secrets.SECURITY_EMAIL }}
+          slack-webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  remediation:
+    name: Security Remediation
+    needs: security-report
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Security Issues
+        uses: ./website/deploy/automation/scripts/create-security-issues.sh
+        with:
+          report: security-report.html
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Security Dashboard
+        uses: ./website/deploy/automation/scripts/update-security-dashboard.sh
+        with:
+          report: security-report.html
+          dashboard-url: ${{ secrets.SECURITY_DASHBOARD_URL }}

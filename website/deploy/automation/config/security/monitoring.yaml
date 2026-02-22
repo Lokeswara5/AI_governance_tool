@@ -1,0 +1,193 @@
+version: '1.0'
+name: Security Monitoring Configuration
+
+metrics:
+  authentication:
+    - name: failed_login_attempts
+      threshold: 5
+      window: 5m
+      alert: true
+      severity: high
+    - name: successful_logins
+      track: true
+      alert: false
+    - name: password_changes
+      track: true
+      alert: true
+      severity: medium
+
+  authorization:
+    - name: unauthorized_access_attempts
+      threshold: 3
+      window: 1h
+      alert: true
+      severity: high
+    - name: privilege_escalations
+      track: true
+      alert: true
+      severity: critical
+    - name: role_changes
+      track: true
+      alert: true
+      severity: medium
+
+  data_access:
+    - name: sensitive_data_reads
+      threshold: 100
+      window: 1h
+      alert: true
+      severity: medium
+    - name: bulk_data_exports
+      track: true
+      alert: true
+      severity: high
+    - name: data_modifications
+      track: true
+      alert: true
+      severity: medium
+
+  api_security:
+    - name: rate_limit_exceeded
+      threshold: 1000
+      window: 1m
+      alert: true
+      severity: medium
+    - name: invalid_api_tokens
+      threshold: 10
+      window: 5m
+      alert: true
+      severity: high
+    - name: api_errors
+      track: true
+      alert: true
+      severity: medium
+
+alerts:
+  channels:
+    slack:
+      webhook_url: ${SLACK_WEBHOOK_URL}
+      channel: "#security-alerts"
+      mentions:
+        critical: "@security-team"
+        high: "@devops-team"
+    email:
+      to:
+        - security@ai-governance.com
+        - devops@ai-governance.com
+    pagerduty:
+      service_key: ${PAGERDUTY_KEY}
+      escalation_policy: "security-incidents"
+
+  rules:
+    - name: brute_force_detection
+      condition: failed_login_attempts > 5
+      window: 5m
+      actions:
+        - block_ip
+        - notify_slack
+        - create_incident
+
+    - name: suspicious_access_pattern
+      condition: unauthorized_access_attempts > 3
+      window: 1h
+      actions:
+        - notify_security
+        - log_event
+        - trigger_investigation
+
+    - name: data_exfiltration
+      condition: bulk_data_exports > 1000
+      window: 1h
+      actions:
+        - block_user
+        - notify_all
+        - create_high_priority_incident
+
+logging:
+  retention:
+    security_events: 365d
+    audit_logs: 180d
+    access_logs: 90d
+
+  encryption:
+    enabled: true
+    algorithm: AES256
+    key_rotation: 90d
+
+  exports:
+    - destination: s3
+      bucket: ai-governance-security-logs
+      prefix: logs/
+      frequency: hourly
+    - destination: cloudwatch
+      log_group: /ai-governance/security
+      retention: 365d
+
+scanning:
+  frequency:
+    dependency: daily
+    container: on_build
+    infrastructure: weekly
+    code: on_commit
+
+  thresholds:
+    critical: 0
+    high: 0
+    medium: 5
+    low: 10
+
+response:
+  automated_actions:
+    - trigger: brute_force
+      actions:
+        - block_ip
+        - reset_credentials
+        - notify_security
+
+    - trigger: data_breach
+      actions:
+        - isolate_system
+        - revoke_tokens
+        - notify_management
+
+    - trigger: compliance_violation
+      actions:
+        - suspend_access
+        - audit_trail
+        - notify_compliance
+
+reporting:
+  daily:
+    - security_incidents
+    - compliance_status
+    - threat_indicators
+  weekly:
+    - trend_analysis
+    - risk_assessment
+    - patch_status
+  monthly:
+    - compliance_report
+    - security_metrics
+    - improvement_recommendations
+
+integrations:
+  - name: wazuh
+    type: SIEM
+    enabled: true
+    config:
+      url: ${WAZUH_URL}
+      api_key: ${WAZUH_API_KEY}
+
+  - name: crowdstrike
+    type: EDR
+    enabled: true
+    config:
+      client_id: ${CROWDSTRIKE_CLIENT_ID}
+      client_secret: ${CROWDSTRIKE_CLIENT_SECRET}
+
+  - name: snyk
+    type: vulnerability_scanner
+    enabled: true
+    config:
+      org_id: ${SNYK_ORG_ID}
+      api_token: ${SNYK_API_TOKEN}
