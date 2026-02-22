@@ -6,7 +6,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen.svg)](https://github.com/Lokeswara5/AI_governance_tool/pulls?q=is%3Apr+author%3Aapp%2Fdependabot)
 
-A Python-based policy engine that analyzes text for compliance with ISO 42001 AI Management System requirements.
+A Python-based policy engine that analyzes text for compliance with ISO 42001 AI Management System requirements. This tool helps organizations assess and maintain compliance with AI governance standards.
 
 ## Features
 
