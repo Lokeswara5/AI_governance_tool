@@ -12,7 +12,7 @@ setup(
         "pytest-cov>=4.0.0",
     ],
     author="Lokeswara5",
-    author_email="your.email@example.com",
+    author_email="lokeshndl1999@gmail.com",
     description="An ISO 42001 compliance checker for AI governance policies",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
