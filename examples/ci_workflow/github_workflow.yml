@@ -1,0 +1,46 @@
+name: AI Policy Compliance Check
+
+on:
+  pull_request:
+    paths:
+      - 'policies/**'
+      - 'ai_policies/**'
+      - '**/*.policy.md'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  check-policies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install AI Governance Tool
+        run: |
+          python -m pip install --upgrade pip
+          pip install ai-governance-tool
+
+      - name: Check Policy Files
+        run: |
+          # Find all policy files
+          files=$(find . -type f \( -name "*.policy.md" -o -path "*/policies/*" -o -path "*/ai_policies/*" \))
+
+          # Check each file
+          for file in $files; do
+            echo "Checking $file..."
+            ai-governance-check check "$file" --min-score 0.7 || exit 1
+          done
+
+      - name: Upload Reports
+        if: always()  # Upload even if checks fail
+        uses: actions/upload-artifact@v3
+        with:
+          name: compliance-reports
+          path: |
+            **/*_report.pdf
+            **/compliance_history.db
