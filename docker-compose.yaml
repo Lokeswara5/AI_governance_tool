@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  ai-governance:
+    build: .
+    volumes:
+      - ./policies:/policies
+      - ./reports:/reports
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: ai-governance-check batch /policies --output-dir /reports
