@@ -67,8 +67,73 @@ Each example may have additional requirements. Install them with:
 pip install -r requirements.txt
 ```
 
+## 5. API Service
+Location: `api_service/`
+
+RESTful API service for compliance checking:
+- FastAPI-based HTTP endpoints
+- Async processing
+- Webhook notifications
+- Historical data access
+
+Usage:
+```bash
+# Start the API server
+uvicorn app:app --reload
+
+# Check API documentation
+open http://localhost:8000/docs
+```
+
+## 6. Jupyter Integration
+Location: `jupyter_integration/`
+
+Interactive analysis and visualization:
+- Policy analysis notebooks
+- Visualization dashboards
+- Trend analysis
+- Export capabilities
+
+Usage:
+```bash
+jupyter notebook Policy_Analysis.ipynb
+```
+
+## 7. CLI Dashboard
+Location: `cli_dashboard/`
+
+Terminal-based interactive dashboard:
+- Real-time monitoring
+- Historical trends
+- Policy details
+- Quick compliance checks
+
+Usage:
+```bash
+python dashboard.py
+```
+
 ## Notes
 
 - Adjust paths and settings according to your environment
 - Examples can be combined or modified for your needs
 - See individual example directories for detailed documentation
+
+## Dependencies
+
+Different examples may require additional dependencies:
+
+### API Service
+```bash
+pip install fastapi uvicorn aiofiles
+```
+
+### Jupyter Integration
+```bash
+pip install jupyter pandas seaborn openpyxl
+```
+
+### CLI Dashboard
+```bash
+pip install pandas windows-curses  # windows-curses only on Windows
+```
