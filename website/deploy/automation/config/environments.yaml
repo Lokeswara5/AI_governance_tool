@@ -1,0 +1,78 @@
+common: &common
+  project: ai-governance
+  region: us-east-1
+  domain: ai-governance.com
+  vpc:
+    cidr: 10.0.0.0/16
+    azs: 3
+  monitoring:
+    enable_alerts: true
+    notification_email: alerts@ai-governance.com
+  logging:
+    retention_days: 30
+    enable_encryption: true
+
+develop:
+  <<: *common
+  environment: develop
+  domain: dev.ai-governance.com
+  instance_size:
+    frontend: t3.small
+    backend: t3.medium
+    redis: cache.t3.small
+    rds: db.t3.small
+  auto_scaling:
+    min: 1
+    max: 2
+    target_cpu: 70
+  features:
+    enable_debugging: true
+    verbose_logging: true
+
+staging:
+  <<: *common
+  environment: staging
+  domain: staging.ai-governance.com
+  instance_size:
+    frontend: t3.medium
+    backend: t3.large
+    redis: cache.t3.medium
+    rds: db.t3.medium
+  auto_scaling:
+    min: 2
+    max: 4
+    target_cpu: 70
+  features:
+    enable_monitoring: true
+    enable_tracing: true
+
+production:
+  <<: *common
+  environment: production
+  domain: ai-governance.com
+  instance_size:
+    frontend: t3.large
+    backend: t3.xlarge
+    redis: cache.r6g.large
+    rds: db.r6g.large
+  auto_scaling:
+    min: 3
+    max: 10
+    target_cpu: 70
+  high_availability:
+    multi_az: true
+    read_replicas: 2
+  backup:
+    retention_days: 30
+    enable_point_in_time: true
+  security:
+    enable_waf: true
+    enable_shield: true
+    enable_guard_duty: true
+  monitoring:
+    enable_enhanced_monitoring: true
+    alert_evaluation_period: 5
+    alarm_period_seconds: 60
+  features:
+    enable_caching: true
+    enable_rate_limiting: true
