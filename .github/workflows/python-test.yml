@@ -37,7 +37,7 @@ jobs:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Store test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v6
       with:
         name: pytest-results-${{ matrix.python-version }}
         path: coverage.xml
