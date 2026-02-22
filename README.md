@@ -6,6 +6,41 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen.svg)](https://github.com/Lokeswara5/AI_governance_tool/pulls?q=is%3Apr+author%3Aapp%2Fdependabot)
 
+A powerful tool for checking AI governance policies against ISO 42001 compliance requirements. Perfect for organizations developing AI systems who need to ensure their governance policies meet international standards.
+
+## Quick Start
+
+### Installation
+
+```bash
+# Install from PyPI
+pip install ai-governance-tool
+
+# Or install from source
+git clone https://github.com/Lokeswara5/AI_governance_tool.git
+cd AI_governance_tool
+pip install -e .
+```
+
+### Basic Usage
+
+1. Check a single policy:
+```bash
+ai-governance-check check policy.txt
+```
+
+2. Compare two policies:
+```bash
+ai-governance-check compare old_policy.txt new_policy.txt
+```
+
+3. Batch check multiple policies:
+```bash
+ai-governance-check batch policies_directory/ --pattern "*.txt"
+```
+
+## Features
+
 A Python-based policy engine that analyzes text for compliance with ISO 42001 AI Management System requirements. This tool helps organizations assess and maintain compliance with AI governance standards.
 
 ## Features

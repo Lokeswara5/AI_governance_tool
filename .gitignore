@@ -27,10 +27,13 @@ wheels/
 *.sqlite3
 trend_chart.png
 category_trends.png
+reports/
+compliance_history.db
 
 # Virtual Environment
 venv/
 ENV/
+.env
 
 # IDE
 .idea/
@@ -41,3 +44,23 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+coverage.xml
+
+# Distribution
+dist/
+build/
+*.egg-info/
+
+# Documentation
+docs/_build/
+site/
+
+# Temporary files
+*.log
+*.tmp
+.*.swp

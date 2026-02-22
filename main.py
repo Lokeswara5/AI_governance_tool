@@ -380,38 +380,57 @@ def generate_pdf_report(result: ComplianceResult, analyzer: ComplianceAnalyzer, 
     if Path('category_trends.png').exists():
         Path('category_trends.png').unlink()
 
+def analyze_policy_file(file_path: str) -> None:
+    """Analyze an AI policy document for ISO 42001 compliance."""
+    try:
+        with open(file_path, 'r') as f:
+            policy_text = f.read()
+
+        analyzer = ComplianceAnalyzer()
+        result = analyzer.check_compliance(policy_text)
+
+        # Print console report
+        print("\nISO 42001 Compliance Check Results:")
+        print("-" * 50)
+        print(f"Overall Score: {result.score:.2f}")
+        print(f"Compliance Status: {'PASS' if result.is_compliant else 'FAIL'}")
+
+        print("\nCategory Analysis:")
+        for category, score in result.category_scores.items():
+            print(f"\n{category} Score: {score:.2f}")
+            if category in result.found_patterns:
+                print("Found patterns:")
+                for pattern, match in result.found_patterns[category]:
+                    print(f"  - {match}")
+
+        print("\nPattern Proximity Analysis:")
+        print("(Shows how closely related terms appear together)")
+        for key, score in result.proximity_scores.items():
+            if score > 0:
+                print(f"{key}: {score:.2f}")
+
+        # Generate PDF report
+        generate_pdf_report(result, analyzer, "compliance_report.pdf")
+
+        print("\nAnalysis complete!")
+        print(f"- Full report saved to: compliance_report.pdf")
+        print(f"- Compliance history saved to: {analyzer.db_path}")
+
+    except FileNotFoundError:
+        print(f"Error: Could not find file {file_path}")
+    except Exception as e:
+        print(f"Error during analysis: {str(e)}")
+
 if __name__ == "__main__":
-    sample_response = """
-    Our AI system prioritizes ethical decision-making and transparent operations.
-    We conduct regular risk assessments and maintain strict security protocols.
-    Privacy is paramount in our system, with fairness measures built into every
-    process. Accountability is ensured through continuous monitoring and robust
-    governance frameworks. We actively work to identify and eliminate potential
-    biases, while our risk management system provides comprehensive oversight
-    of all operations.
-    """
+    import sys
 
-    analyzer = ComplianceAnalyzer()
-    result = analyzer.check_compliance(sample_response)
+    if len(sys.argv) > 1:
+        # Use file provided as command line argument
+        policy_file = sys.argv[1]
+    else:
+        # Use default sample file
+        policy_file = "sample_policy.txt"
 
-    # Print console report
-    print("\nISO 42001 Compliance Check Results:")
-    print("-" * 50)
-    print(f"Overall Score: {result.score:.2f}")
-    print(f"Compliance Status: {'PASS' if result.is_compliant else 'FAIL'}")
-
-    print("\nCategory Analysis:")
-    for category, score in result.category_scores.items():
-        print(f"\n{category} Score: {score:.2f}")
-        if category in result.found_patterns:
-            print("Found patterns:")
-            for pattern, match in result.found_patterns[category]:
-                print(f"  - {match}")
-
-    print("\nPattern Proximity Analysis:")
-    for key, score in result.proximity_scores.items():
-        if score > 0:
-            print(f"{key}: {score:.2f}")
-
-    # Export reports
-    generate_pdf_report(result, analyzer, "compliance_report.pdf")
+    print(f"\nAnalyzing AI governance policy: {policy_file}")
+    print("=" * 50)
+    analyze_policy_file(policy_file)
