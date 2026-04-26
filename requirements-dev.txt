@@ -4,7 +4,7 @@
 mkdocs-material>=9.0.0
 mkdocstrings>=0.20.0
 mkdocstrings-python>=0.9.0
-mkdocs-git-revision-date-localized-plugin>=1.2.0
+mkdocs-git-revision-date-localized-plugin>=1.5.0
 
 # Development
 pre-commit>=3.0.0
