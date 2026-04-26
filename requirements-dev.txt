@@ -10,7 +10,7 @@ mkdocs-git-revision-date-localized-plugin>=1.2.0
 pre-commit>=3.0.0
 build>=0.10.0
 twine>=4.0.0
-wheel>=0.40.0
+wheel>=0.47.0
 
 # Testing
 pytest>=7.0.0
