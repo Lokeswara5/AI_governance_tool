@@ -8,7 +8,7 @@ mkdocs-git-revision-date-localized-plugin>=1.2.0
 
 # Development
 pre-commit>=3.0.0
-build>=0.10.0
+build>=1.4.4
 twine>=4.0.0
 wheel>=0.40.0
 
